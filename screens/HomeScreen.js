@@ -8,10 +8,14 @@ import {
   Image,
   Platform,
 } from 'react-native';
-import React from 'react';
+import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { addNickname } from '../reducers/user';
 import { useFonts, Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 
 export default function HomeScreen({ navigation }) {
+  const dispatch = useDispatch();
+  const [nickname, setNickname] = useState('');
   let [fontsLoaded] = useFonts({
     Pacifico_400Regular,
   });
@@ -21,6 +25,7 @@ export default function HomeScreen({ navigation }) {
 
   const handlePress = () => {
     navigation.navigate('TabNavigator');
+    dispatch(addNickname(nickname));
   };
 
   return (
@@ -33,7 +38,12 @@ export default function HomeScreen({ navigation }) {
         source={require('../assets/home-image.png')}
       />
       <Text style={styles.title}>Welcome to Locate Me</Text>
-      <TextInput style={styles.input} placeholder="Nickname" />
+      <TextInput
+        style={styles.input}
+        placeholder="Nickname"
+        onChangeText={(value) => setNickname(value)}
+        value={nickname}
+      />
       <TouchableOpacity
         style={styles.button}
         onPress={() => handlePress()}

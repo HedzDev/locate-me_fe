@@ -7,17 +7,37 @@ import {
   ScrollView,
   SafeAreaView,
 } from 'react-native';
-import React from 'react';
+import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { addPlace, removePlace } from '../reducers/user';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
 export default function PlacesScreen() {
-  const placesData = [
-    { name: 'Paris', latitude: 48.859, longitude: 2.347 },
-    { name: 'Lyon', latitude: 45.758, longitude: 4.835 },
-    { name: 'Marseille', latitude: 43.282, longitude: 5.405 },
-  ];
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.value);
 
-  const places = placesData.map((place, id) => {
+  const [newCity, setNewCity] = useState('');
+
+  const handlePress = () => {
+    if (newCity.length === 0) {
+      return;
+    }
+
+    fetch(`https://api-adresse.data.gouv.fr/search/?q=${newCity}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const firstCity = data.features[0];
+        const newPlace = {
+          name: firstCity.properties.name,
+          latitude: firstCity.geometry.coordinates[1],
+          longitude: firstCity.geometry.coordinates[0],
+        };
+        dispatch(addPlace(newPlace));
+        setNewCity('');
+      });
+  };
+
+  const places = user.places.map((place, id) => {
     return (
       <View key={id} style={styles.placeCard}>
         <View>
@@ -26,18 +46,31 @@ export default function PlacesScreen() {
             LAT : {place.latitude} LON : {place.longitude}
           </Text>
         </View>
-        <FontAwesome name="trash-o" style={styles.icon} />
+        <FontAwesome
+          name="trash-o"
+          style={styles.icon}
+          onPress={() => dispatch(removePlace(place.name))}
+        />
       </View>
     );
   });
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>John Doe's Places</Text>
+      <Text style={styles.title}>{user.nickname}'s Places</Text>
 
       <View style={styles.inputBlock}>
-        <TextInput placeholder="New city" style={styles.input} />
-        <TouchableOpacity style={styles.button} activeOpacity={0.8}>
+        <TextInput
+          placeholder="New city"
+          style={styles.input}
+          onChangeText={(value) => setNewCity(value)}
+          value={newCity}
+        />
+        <TouchableOpacity
+          style={styles.button}
+          activeOpacity={0.8}
+          onPress={() => handlePress()}
+        >
           <Text style={styles.textButton}>Add</Text>
         </TouchableOpacity>
       </View>
@@ -105,5 +138,6 @@ const styles = StyleSheet.create({
   icon: {
     color: '#B733D0',
     fontSize: 23,
+    cursor: 'pointer',
   },
 });
