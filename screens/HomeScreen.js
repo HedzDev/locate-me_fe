@@ -24,8 +24,14 @@ export default function HomeScreen({ navigation }) {
   }
 
   const handlePress = () => {
-    navigation.navigate('TabNavigator');
-    dispatch(addNickname(nickname));
+    // Fonction qui gère le clic sur le bouton 'Go to map'
+    if (nickname === '' || nickname.length < 3) {
+      // Si le nickname est vide ou a moins de 3 caractères on affiche une alerte
+      alert('Please enter a nickname 🤬 with at least 3 characters');
+      return;
+    }
+    navigation.navigate('TabNavigator'); // Sinon on navigue vers le TabNavigator
+    dispatch(addNickname(nickname)); // On dispatch l'action addNickname avec le nickname en paramètre pour le stocker dans le store
   };
 
   return (

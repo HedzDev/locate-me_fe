@@ -19,8 +19,12 @@ export const userSlice = createSlice({
         (el) => el.name != action.payload
       );
     },
+    importPlaces: (state, action) => {
+      state.value.places = action.payload;
+    },
   },
 });
 
-export const { addNickname, addPlace, removePlace } = userSlice.actions;
+export const { addNickname, addPlace, removePlace, importPlaces } =
+  userSlice.actions;
 export default userSlice.reducer;

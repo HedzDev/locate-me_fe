@@ -9,8 +9,10 @@ import {
 } from 'react-native';
 import React, { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { addPlace, removePlace } from '../reducers/user';
+import { addPlace, removePlace, updatePlace } from '../reducers/user';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
+
+const BACKEND_ADDRESS = 'http://192.168.1.185:3000';
 
 export default function PlacesScreen() {
   const dispatch = useDispatch();
@@ -19,25 +21,65 @@ export default function PlacesScreen() {
   const [newCity, setNewCity] = useState('');
 
   const handlePress = () => {
+    // Fonction qui gère l'ajout d'un lieu en base de données et dans le store Redux
     if (newCity.length === 0) {
+      // Si le champ est vide, on ne fait rien et on sort de la fonction
       return;
     }
 
-    fetch(`https://api-adresse.data.gouv.fr/search/?q=${newCity}`)
+    fetch(`https://api-adresse.data.gouv.fr/search/?q=${newCity}`) // On récupère les coordonnées du lieu à ajouter grâce à l'API data.gouv.fr
       .then((res) => res.json())
       .then((data) => {
+        if (data.features.length === 0) {
+          // Si la réponse est vide, on ne fait rien et on sort de la fonction
+          return;
+        }
+
         const firstCity = data.features[0];
         const newPlace = {
+          // On crée un objet newPlace avec les données du lieu à ajouter
           name: firstCity.properties.name,
           latitude: firstCity.geometry.coordinates[1],
           longitude: firstCity.geometry.coordinates[0],
         };
-        dispatch(addPlace(newPlace));
-        setNewCity('');
+
+        fetch(`${BACKEND_ADDRESS}/places`, {
+          // On envoie les données du lieu à ajouter en base de données (nickname, nom du lieu, latitude et longitude) au format JSON
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nickname: user.nickname,
+            name: newPlace.name,
+            latitude: newPlace.latitude,
+            longitude: newPlace.longitude,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            // On récupère la réponse du serveur et si elle est positive, on dispatch l'action addPlace avec le lieu à ajouter en paramètre pour le stocker dans le store Redux
+            if (data.result) {
+              dispatch(addPlace(newPlace));
+              setNewCity('');
+            }
+          });
+      });
+  };
+
+  const handleDelete = (value) => {
+    // Fonction qui gère la suppression d'un lieu en base de données et dans le store Redux
+    fetch(`${BACKEND_ADDRESS}/places`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname: user.nickname, name: value }), // On envoie le nom du lieu à supprimer en base de données (nickname et nom du lieu) au format JSON
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        data.result && dispatch(removePlace(value)); // On dispatch l'action removePlace avec le nom du lieu à supprimer en paramètre pour le supprimer du store Redux
       });
   };
 
   const places = user.places.map((place, id) => {
+    // On boucle sur le tableau des lieux stockés dans le store Redux pour les afficher dans une liste
     return (
       <View key={id} style={styles.placeCard}>
         <View>
@@ -49,7 +91,7 @@ export default function PlacesScreen() {
         <FontAwesome
           name="trash-o"
           style={styles.icon}
-          onPress={() => dispatch(removePlace(place.name))}
+          onPress={() => handleDelete(place.name)}
         />
       </View>
     );
@@ -138,6 +180,5 @@ const styles = StyleSheet.create({
   icon: {
     color: '#B733D0',
     fontSize: 23,
-    cursor: 'pointer',
   },
 });

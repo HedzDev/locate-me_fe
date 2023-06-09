@@ -10,17 +10,21 @@ import MapView, { Marker } from 'react-native-maps';
 import React, { useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import { useSelector, useDispatch } from 'react-redux';
-import { addPlace } from '../reducers/user';
+import { addPlace, importPlaces } from '../reducers/user';
+
+const BACKEND_ADDRESS = 'http://192.168.1.185:3000'; // Adresse IP de votre serveur backend à remplacer par la vôtre
 
 export default function MapScreen() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.user.value);
-  const [currentPosition, setCurrentPosition] = useState(null);
-  const [tempCoordinates, setTempCoordinates] = useState(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [newPlace, setNewPlace] = useState('');
+
+  const [currentPosition, setCurrentPosition] = useState(null); // On stocke la position actuelle de l'utilisateur
+  const [tempCoordinates, setTempCoordinates] = useState(null); // On stocke les coordonnées de la position où l'utilisateur a appuyé longuement
+  const [isModalVisible, setIsModalVisible] = useState(false); // On stocke la visibilité du modal pour ajouter un lieu sur la carte
+  const [newPlace, setNewPlace] = useState(''); // On stocke le nom du lieu à ajouter
 
   useEffect(() => {
+    // On demande la permission d'accéder à la position de l'utilisateur
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
 
@@ -30,23 +34,48 @@ export default function MapScreen() {
         });
       }
     })();
+
+    fetch(`${BACKEND_ADDRESS}/places/${user.nickname}`) // On récupère les lieux de l'utilisateur stockés en base de données pour les afficher sur la carte
+      .then((response) => response.json())
+      .then((data) => {
+        data.result && dispatch(importPlaces(data.places)); // Si result est true on dispatch l'action importPlaces avec les lieux en paramètre pour les stocker dans le store
+      });
   }, []);
 
   const handleLongPress = (e) => {
+    // Fonction qui gère le clic long sur la carte
     setTempCoordinates(e.nativeEvent.coordinate);
     setIsModalVisible(true);
   };
 
   const handleNewPlace = () => {
-    dispatch(
-      addPlace({
+    // Fonction qui gère l'ajout d'un lieu sur la carte en base de données
+    fetch(`${BACKEND_ADDRESS}/places`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'Application/json' },
+      body: JSON.stringify({
+        // On envoie les données du lieu à ajouter en base de données (nickname, nom du lieu, latitude et longitude) au format JSON
+        nickname: user.nickname,
         name: newPlace,
         latitude: tempCoordinates.latitude,
         longitude: tempCoordinates.longitude,
-      })
-    );
-    setIsModalVisible(false);
-    setNewPlace('');
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.result) {
+          // Si le lieu a bien été ajouté en base de données, on dispatch l'action addPlace avec les données du lieu en paramètre pour l'ajouter dans le store
+          dispatch(
+            addPlace({
+              name: newPlace,
+              latitude: tempCoordinates.latitude,
+              longitude: tempCoordinates.longitude,
+            })
+          );
+          setIsModalVisible(false);
+          setNewPlace('');
+        }
+      });
   };
 
   const handleClose = () => {
