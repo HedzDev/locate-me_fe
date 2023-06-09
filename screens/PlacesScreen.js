@@ -12,7 +12,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addPlace, removePlace, updatePlace } from '../reducers/user';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 
-const BACKEND_ADDRESS = 'http://192.168.1.185:3000';
+const BACKEND_ADDRESS = 'https://locate-me-be.vercel.app/';
 
 export default function PlacesScreen() {
   const dispatch = useDispatch();
